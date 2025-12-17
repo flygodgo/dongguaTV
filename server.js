@@ -5,11 +5,24 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DATA_FILE = path.join(__dirname, 'db.json');
 const TEMPLATE_FILE = path.join(__dirname, 'db.template.json');
+
+// 访问密码配置
+const ACCESS_PASSWORD = process.env.ACCESS_PASSWORD || '';
+const PASSWORD_HASH = ACCESS_PASSWORD ? crypto.createHash('sha256').update(ACCESS_PASSWORD).digest('hex') : '';
+
+// 远程配置URL
+const REMOTE_DB_URL = process.env.REMOTE_DB_URL || '';
+
+// 远程配置缓存
+let remoteDbCache = null;
+let remoteDbLastFetch = 0;
+const REMOTE_DB_CACHE_TTL = 5 * 60 * 1000; // 5分钟缓存
 
 // 缓存配置
 const CACHE_TYPE = process.env.CACHE_TYPE || 'json'; // json, sqlite, memory, none
@@ -164,19 +177,83 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
-function getDB() {
+// 从远程URL获取配置（带缓存）
+async function fetchRemoteDB() {
+    const now = Date.now();
+    if (remoteDbCache && (now - remoteDbLastFetch < REMOTE_DB_CACHE_TTL)) {
+        return remoteDbCache;
+    }
+
+    try {
+        console.log(`[RemoteDB] Fetching from: ${REMOTE_DB_URL}`);
+        const response = await axios.get(REMOTE_DB_URL, { timeout: 10000 });
+        remoteDbCache = response.data;
+        remoteDbLastFetch = now;
+        console.log(`[RemoteDB] Loaded ${remoteDbCache.sites?.length || 0} sites`);
+        return remoteDbCache;
+    } catch (e) {
+        console.error('[RemoteDB] Fetch failed:', e.message);
+        // 如果远程获取失败，回退到缓存或本地
+        if (remoteDbCache) return remoteDbCache;
+        return getLocalDB();
+    }
+}
+
+// 从本地文件获取配置
+function getLocalDB() {
     try {
         if (!fs.existsSync(DATA_FILE)) return { sites: [] };
         return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
     } catch (e) { return { sites: [] }; }
 }
 
+// 统一的配置获取函数
+async function getDBAsync() {
+    if (REMOTE_DB_URL) {
+        return await fetchRemoteDB();
+    }
+    return getLocalDB();
+}
+
+// 同步版本（用于需要同步访问的地方）
+function getDB() {
+    if (REMOTE_DB_URL && remoteDbCache) {
+        return remoteDbCache;
+    }
+    return getLocalDB();
+}
+
 // === API Routes ===
+
+// 密码验证接口
+app.post('/api/auth/verify', (req, res) => {
+    const { passwordHash } = req.body;
+
+    if (!PASSWORD_HASH) {
+        // 没有设置密码，直接通过
+        return res.json({ success: true, message: 'No password required' });
+    }
+
+    if (passwordHash === PASSWORD_HASH) {
+        return res.json({ success: true, message: 'Password verified' });
+    }
+
+    return res.status(401).json({ success: false, message: 'Invalid password' });
+});
+
+// 检查是否需要密码的接口
+app.get('/api/auth/check', (req, res) => {
+    res.json({
+        requirePassword: !!PASSWORD_HASH,
+        // 不返回密码哈希，只返回是否需要密码
+    });
+});
 
 // 1. 真实测速接口
 app.get('/api/check', async (req, res) => {
     const { key } = req.query;
-    const site = getDB().sites.find(s => s.key === key);
+    const db = await getDBAsync();
+    const site = db.sites.find(s => s.key === key);
     if (!site) return res.json({ latency: 9999 });
 
     const start = Date.now();
@@ -190,7 +267,8 @@ app.get('/api/check', async (req, res) => {
 
 // 2. 热门接口
 app.get('/api/hot', async (req, res) => {
-    const sites = getDB().sites.filter(s => ['ffzy', 'bfzy', 'lzi', 'dbzy'].includes(s.key));
+    const db = await getDBAsync();
+    const sites = db.sites.filter(s => ['ffzy', 'bfzy', 'lzi', 'dbzy'].includes(s.key));
     for (const site of sites) {
         try {
             const response = await axios.get(`${site.api}?ac=list&pg=1&h=24&out=json`, { timeout: 3000 });
@@ -222,7 +300,8 @@ app.get('/api/search', async (req, res) => {
         return res.json({ list: cachedItem.data });
     }
 
-    const sites = getDB().sites.filter(s => s.active);
+    const db = await getDBAsync();
+    const sites = db.sites.filter(s => s.active);
     let allResults = [];
 
     // --- Stream Mode ---
@@ -316,7 +395,8 @@ app.get('/api/detail', async (req, res) => {
     const cachedData = cache.getDetail(cacheKey);
     if (cachedData) return res.json(cachedData);
 
-    const site = getDB().sites.find(s => s.key === site_key);
+    const db = await getDBAsync();
+    const site = db.sites.find(s => s.key === site_key);
     if (!site) return res.status(404).json({ error: "Site not found" });
 
     try {
@@ -349,9 +429,22 @@ app.get('/api/config', (req, res) => {
 });
 
 // 6. 站点接口
-app.get('/api/sites', (req, res) => {
-    const sites = getDB().sites.filter(s => s.active);
+app.get('/api/sites', async (req, res) => {
+    const db = await getDBAsync();
+    const sites = db.sites.filter(s => s.active);
     res.json({ sites: sites.map(s => ({ key: s.key, name: s.name, api: s.api })) });
 });
 
 app.listen(PORT, () => { console.log(`服务已启动: http://localhost:${PORT}`); });
+
+// 启动时预加载远程配置
+(async () => {
+    if (REMOTE_DB_URL) {
+        console.log('[Startup] Remote DB URL configured, pre-fetching...');
+        await fetchRemoteDB();
+        console.log(`[Config] Using remote db.json: ${REMOTE_DB_URL}`);
+    }
+    if (ACCESS_PASSWORD) {
+        console.log('[Security] Password protection enabled');
+    }
+})();

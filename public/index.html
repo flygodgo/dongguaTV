@@ -13,15 +13,15 @@
     <link rel="icon" href="icon.png" type="image/png">
     <meta name="theme-color" content="#141414">
 
-    <!-- Cloudflare CDN -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- 本地静态资源 (避免 CDN 访问问题) -->
+    <link href="libs/css/bootstrap.min.css" rel="stylesheet">
+    <link href="libs/css/animate.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="libs/css/fontawesome.min.css">
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.1.5/hls.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dplayer/1.26.0/DPlayer.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.2.47/vue.global.prod.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+    <script src="libs/js/hls.min.js"></script>
+    <script src="libs/js/DPlayer.min.js"></script>
+    <script src="libs/js/vue.global.prod.min.js"></script>
+    <script src="libs/js/bootstrap.bundle.min.js"></script>
 
     <style>
         :root {
@@ -1027,6 +1027,194 @@
                 opacity: 0.8;
             }
         }
+
+        /* Password Protection Screen */
+        .password-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #0a0a0a 100%);
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+        }
+
+        .password-screen.hidden {
+            opacity: 0;
+            transform: scale(1.1);
+            pointer-events: none;
+        }
+
+        .password-container {
+            background: rgba(30, 30, 40, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 50px 40px;
+            width: 100%;
+            max-width: 420px;
+            margin: 20px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5), 0 0 100px rgba(229, 9, 20, 0.1);
+            animation: floatIn 0.8s ease-out;
+        }
+
+        @keyframes floatIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .password-logo {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .password-logo-text {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(45deg, #e50914, #ff5151);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 2px;
+        }
+
+        .password-logo-subtitle {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .password-input-group {
+            position: relative;
+            margin-bottom: 25px;
+        }
+
+        .password-input {
+            width: 100%;
+            padding: 18px 50px 18px 20px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: #fff;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .password-input:focus {
+            border-color: #e50914;
+            box-shadow: 0 0 20px rgba(229, 9, 20, 0.2);
+        }
+
+        .password-input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            font-size: 18px;
+            transition: color 0.2s;
+        }
+
+        .password-toggle:hover {
+            color: #fff;
+        }
+
+        .password-submit {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #e50914 0%, #b20710 100%);
+            border: none;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .password-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(229, 9, 20, 0.4);
+        }
+
+        .password-submit:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .password-error {
+            background: rgba(229, 9, 20, 0.2);
+            border: 1px solid rgba(229, 9, 20, 0.4);
+            border-radius: 8px;
+            padding: 12px 15px;
+            margin-bottom: 20px;
+            color: #ff6b6b;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: shake 0.5s ease;
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            20%,
+            60% {
+                transform: translateX(-5px);
+            }
+
+            40%,
+            80% {
+                transform: translateX(5px);
+            }
+        }
+
+        .password-remember {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+            margin-bottom: 25px;
+            cursor: pointer;
+        }
+
+        .password-remember input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #e50914;
+            cursor: pointer;
+        }
     </style>
 </head>
 
@@ -1036,6 +1224,42 @@
         <div class="loader-logo">E视界 <span
                 style="font-size:1.2rem; -webkit-text-fill-color: #fff; opacity:0.8;">MAX</span></div>
         <div class="loader-spinner"></div>
+    </div>
+
+    <!-- Password Protection Screen -->
+    <div id="password-screen" class="password-screen" style="display: none;">
+        <div class="password-container">
+            <div class="password-logo">
+                <div class="password-logo-text">E视界 <span
+                        style="font-size:1rem; -webkit-text-fill-color: #fff; opacity:0.8;">MAX</span></div>
+                <div class="password-logo-subtitle"><i class="fas fa-lock"></i> 需要密码才能访问</div>
+            </div>
+
+            <div id="password-error" class="password-error" style="display: none;">
+                <i class="fas fa-exclamation-circle"></i>
+                <span id="password-error-text">密码错误，请重试</span>
+            </div>
+
+            <form id="password-form" onsubmit="return handlePasswordSubmit(event);">
+                <div class="password-input-group">
+                    <input type="password" id="password-input" class="password-input" placeholder="请输入访问密码"
+                        autocomplete="current-password" required>
+                    <button type="button" class="password-toggle" onclick="togglePasswordVisibility()">
+                        <i id="password-eye" class="fas fa-eye"></i>
+                    </button>
+                </div>
+
+                <label class="password-remember">
+                    <input type="checkbox" id="remember-password" checked>
+                    <span>记住登录状态 (30天)</span>
+                </label>
+
+                <button type="submit" class="password-submit" id="password-submit-btn">
+                    <i class="fas fa-unlock"></i>
+                    <span>验证密码</span>
+                </button>
+            </form>
+        </div>
     </div>
 
     <div id="app">
@@ -1355,6 +1579,184 @@
 
     </div>
 
+    <!-- Password Verification Script (runs before Vue) -->
+    <script>
+        // SHA256 Hash Function (Pure JS implementation)
+        async function sha256(message) {
+            const msgBuffer = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        // Storage Keys
+        const AUTH_STORAGE_KEY = 'emax_auth_hash';
+        const AUTH_EXPIRY_KEY = 'emax_auth_expiry';
+
+        // Check if already authenticated
+        function isAuthenticated() {
+            const storedHash = localStorage.getItem(AUTH_STORAGE_KEY);
+            const expiry = localStorage.getItem(AUTH_EXPIRY_KEY);
+
+            if (!storedHash || !expiry) return false;
+
+            // Check if expired
+            if (Date.now() > parseInt(expiry)) {
+                localStorage.removeItem(AUTH_STORAGE_KEY);
+                localStorage.removeItem(AUTH_EXPIRY_KEY);
+                return false;
+            }
+
+            return storedHash;
+        }
+
+        // Toggle password visibility
+        function togglePasswordVisibility() {
+            const input = document.getElementById('password-input');
+            const eye = document.getElementById('password-eye');
+
+            if (input.type === 'password') {
+                input.type = 'text';
+                eye.classList.remove('fa-eye');
+                eye.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                eye.classList.remove('fa-eye-slash');
+                eye.classList.add('fa-eye');
+            }
+        }
+
+        // Show error message
+        function showPasswordError(message) {
+            const errorDiv = document.getElementById('password-error');
+            const errorText = document.getElementById('password-error-text');
+            errorText.textContent = message;
+            errorDiv.style.display = 'flex';
+        }
+
+        // Handle password submit
+        async function handlePasswordSubmit(event) {
+            event.preventDefault();
+
+            const input = document.getElementById('password-input');
+            const submitBtn = document.getElementById('password-submit-btn');
+            const remember = document.getElementById('remember-password').checked;
+            const errorDiv = document.getElementById('password-error');
+
+            // Hide previous error
+            errorDiv.style.display = 'none';
+
+            // Disable button
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>验证中...</span>';
+
+            try {
+                const password = input.value;
+                const passwordHash = await sha256(password);
+
+                // Verify with server
+                const res = await fetch('/api/auth/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ passwordHash })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    // Save auth state
+                    if (remember) {
+                        const expiry = Date.now() + (30 * 24 * 60 * 60 * 1000); // 30 days
+                        localStorage.setItem(AUTH_STORAGE_KEY, passwordHash);
+                        localStorage.setItem(AUTH_EXPIRY_KEY, expiry.toString());
+                    }
+
+                    // Hide password screen with animation
+                    const screen = document.getElementById('password-screen');
+                    screen.classList.add('hidden');
+
+                    // Start app
+                    setTimeout(() => {
+                        screen.style.display = 'none';
+                        window.startApp && window.startApp();
+                    }, 500);
+                } else {
+                    showPasswordError('密码错误，请重试');
+                    input.value = '';
+                    input.focus();
+                }
+            } catch (e) {
+                showPasswordError('验证失败，请检查网络连接');
+                console.error('Auth error:', e);
+            }
+
+            // Re-enable button
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-unlock"></i><span>验证密码</span>';
+
+            return false;
+        }
+
+        // Check auth status on page load
+        async function checkAuthStatus() {
+            try {
+                const res = await fetch('/api/auth/check');
+                const data = await res.json();
+
+                if (!data.requirePassword) {
+                    // No password required, start app directly
+                    window.startApp && window.startApp();
+                    return;
+                }
+
+                // Password required, check if already authenticated
+                const storedHash = isAuthenticated();
+                if (storedHash) {
+                    // Verify stored hash is still valid
+                    const verifyRes = await fetch('/api/auth/verify', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ passwordHash: storedHash })
+                    });
+                    const verifyData = await verifyRes.json();
+
+                    if (verifyData.success) {
+                        // Stored auth is valid, start app
+                        window.startApp && window.startApp();
+                        return;
+                    } else {
+                        // Stored auth is invalid, clear it
+                        localStorage.removeItem(AUTH_STORAGE_KEY);
+                        localStorage.removeItem(AUTH_EXPIRY_KEY);
+                    }
+                }
+
+                // Show password screen
+                const loader = document.getElementById('app-loader');
+                const screen = document.getElementById('password-screen');
+
+                // Hide loader, show password screen
+                if (loader) loader.classList.add('hidden');
+                screen.style.display = 'flex';
+
+                // Focus input
+                setTimeout(() => {
+                    document.getElementById('password-input').focus();
+                }, 100);
+
+            } catch (e) {
+                console.error('Auth check error:', e);
+                // On error, try to start app anyway
+                window.startApp && window.startApp();
+            }
+        }
+
+        // Run check when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuthStatus();
+        });
+    </script>
+
     <script>
         const { createApp, reactive } = Vue;
         // TMDb API 配置 (从服务端获取)
@@ -1446,47 +1848,13 @@
             async mounted() {
                 window.addEventListener('scroll', () => { this.scrollY = window.scrollY; });
 
-                // 1. 获取后端配置
-                try {
-                    const res = await fetch('/api/config');
-                    const config = await res.json();
-                    TMDB_API_KEY = config.tmdb_api_key;
+                // Store reference to app instance for external access
+                window.vueApp = this;
 
-                    // 如果配置了反代地址，进行 IP 检测并切换
-                    if (config.tmdb_proxy_url) {
-                        await this.setupTmdbProxy(config.tmdb_proxy_url);
-                    }
-                } catch (e) {
-                    console.error('Config Load Error:', e);
-                }
-
-                // 2. 如果获取到了 Key，加载数据
-                if (TMDB_API_KEY) {
-                    this.fetchHero();
-                    this.fetchAllLists();
-                } else {
-                    console.warn('TMDB_API_KEY 未配置');
-                    // 可以在界面上显示一个提示
-                }
-
-                // 3. 移除 Loading 遮罩 (平滑过渡)
-                setTimeout(() => {
-                    const loader = document.getElementById('app-loader');
-                    if (loader) loader.classList.add('hidden');
-                }, 800);
-
-                // 4. 加载站点信息（用于客户端测速）
-                try {
-                    const sitesRes = await fetch('/api/sites');
-                    const sitesData = await sitesRes.json();
-                    if (sitesData.sites) {
-                        sitesData.sites.forEach(site => {
-                            this.sitesMap[site.key] = site;
-                        });
-                    }
-                } catch (e) {
-                    console.error('Sites Load Error:', e);
-                }
+                // 定义 startApp 函数供密码验证成功后调用
+                window.startApp = () => {
+                    this.initApp();
+                };
             },
             computed: {
                 groupedList() {
@@ -1527,6 +1895,52 @@
                 }
             },
             methods: {
+                async initApp() {
+                    // 防止重复初始化
+                    if (this._appInitialized) return;
+                    this._appInitialized = true;
+
+                    // 1. 获取后端配置
+                    try {
+                        const res = await fetch('/api/config');
+                        const config = await res.json();
+                        TMDB_API_KEY = config.tmdb_api_key;
+
+                        // 如果配置了反代地址，进行 IP 检测并切换
+                        if (config.tmdb_proxy_url) {
+                            await this.setupTmdbProxy(config.tmdb_proxy_url);
+                        }
+                    } catch (e) {
+                        console.error('Config Load Error:', e);
+                    }
+
+                    // 2. 如果获取到了 Key，加载数据
+                    if (TMDB_API_KEY) {
+                        this.fetchHero();
+                        this.fetchAllLists();
+                    } else {
+                        console.warn('TMDB_API_KEY 未配置');
+                    }
+
+                    // 3. 移除 Loading 遮罩 (平滑过渡)
+                    setTimeout(() => {
+                        const loader = document.getElementById('app-loader');
+                        if (loader) loader.classList.add('hidden');
+                    }, 800);
+
+                    // 4. 加载站点信息（用于客户端测速）
+                    try {
+                        const sitesRes = await fetch('/api/sites');
+                        const sitesData = await sitesRes.json();
+                        if (sitesData.sites) {
+                            sitesData.sites.forEach(site => {
+                                this.sitesMap[site.key] = site;
+                            });
+                        }
+                    } catch (e) {
+                        console.error('Sites Load Error:', e);
+                    }
+                },
                 // 滚动到指定区域
                 scrollToSection(refName) {
                     let el = this.$refs[refName];
