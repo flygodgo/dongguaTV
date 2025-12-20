@@ -436,15 +436,43 @@ docker run -d -p 3000:3000 \
    - `ACCESS_PASSWORD` - 访问密码（可选）
    - `TMDB_PROXY_URL` - 大陆用户反代地址（可选）
    - `REMOTE_DB_URL` - 远程配置地址（可选）
+   - `CACHE_TYPE` - 建议设置为 `memory`（Serverless 环境推荐）
 
-2. **环境变量不生效？** 请检查以下几点：
-   - ✅ 确保变量名**完全正确**（区分大小写）
-   - ✅ 确保选择了正确的 **Environment**（Production / Preview / Development）
-   - ✅ **添加环境变量后必须重新部署**：进入 Deployments 页面，点击最新部署的 `...` 菜单，选择 **Redeploy**
-   - ✅ 如果使用了 Git 分支部署，确保变量应用于对应的分支
+2. **环境变量不生效？** 请按以下步骤排查：
 
-3. **验证环境变量是否生效**：
-   访问 `https://your-domain.vercel.app/api/config`，检查返回的 JSON 中 `tmdb_api_key` 是否有值。
+   | 步骤 | 操作 | 说明 |
+   |------|------|------|
+   | ① | 检查变量名 | 确保**完全正确**且区分大小写 |
+   | ② | 检查环境范围 | 确保勾选了 **Production** 环境 |
+   | ③ | **重新部署** | ⚠️ 添加/修改变量后必须重新部署！进入 Deployments → 点击最新部署的 `...` → **Redeploy** |
+   | ④ | 使用诊断端点 | 访问 `/api/debug` 查看环境变量状态 |
+
+3. **诊断端点** - 检查配置是否生效：
+   
+   访问 `https://your-domain.vercel.app/api/debug`，您会看到类似以下的返回：
+   ```json
+   {
+     "environment": "Vercel Serverless",
+     "node_version": "v18.x.x",
+     "env_status": {
+       "TMDB_API_KEY": "configured",      // 应显示 "configured"
+       "TMDB_PROXY_URL": "not_set",
+       "ACCESS_PASSWORD": "1 password(s)",
+       "REMOTE_DB_URL": "not_set",
+       "CACHE_TYPE": "memory"
+     },
+     "cache_type": "memory",
+     "timestamp": "2024-01-01T00:00:00.000Z"
+   }
+   ```
+   
+   如果 `TMDB_API_KEY` 显示 `"missing"`，说明环境变量未正确配置或未重新部署。
+
+4. **常见问题**：
+   - ❌ **修改环境变量后没有重新部署** - 这是最常见的问题！
+   - ❌ **环境变量只勾选了 Preview 没勾选 Production**
+   - ❌ **使用了错误的变量名**（如 `tmdb_api_key` 而非 `TMDB_API_KEY`）
+
 
 ### 🖥️ Linux 服务器命令行部署 (PM2)
 适合常规 VPS (Ubuntu/CentOS/Debian)。

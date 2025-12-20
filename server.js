@@ -1,4 +1,8 @@
-require('dotenv').config();
+// Vercel 环境会自动注入环境变量，无需加载 .env 文件
+if (!process.env.VERCEL) {
+    require('dotenv').config();
+}
+
 const express = require('express');
 const axios = require('axios');
 const bodyParser = require('body-parser');
@@ -46,6 +50,13 @@ console.log(`[System] Password mode: ${ACCESS_PASSWORDS.length > 1 ? 'Multi-user
 
 // 远程配置URL
 const REMOTE_DB_URL = process.env.REMOTE_DB_URL || '';
+
+// 环境变量加载状态日志（用于 Vercel 调试）
+console.log(`[System] Environment: ${process.env.VERCEL ? 'Vercel Serverless' : 'Local/VPS'}`);
+console.log(`[System] TMDB_API_KEY: ${process.env.TMDB_API_KEY ? '✓ Configured' : '✗ Missing'}`);
+console.log(`[System] TMDB_PROXY_URL: ${process.env.TMDB_PROXY_URL || '(not set)'}`);
+console.log(`[System] REMOTE_DB_URL: ${REMOTE_DB_URL ? '✓ Configured' : '(not set)'}`);
+
 
 // 远程配置缓存
 let remoteDbCache = null;
@@ -310,6 +321,23 @@ app.get('/api/config', (req, res) => {
         // 多用户同步功能
         sync_enabled: syncEnabled,
         multi_user_mode: ACCESS_PASSWORDS.length > 1
+    });
+});
+
+// 诊断端点：检查环境变量配置状态（用于 Vercel 调试）
+app.get('/api/debug', (req, res) => {
+    res.json({
+        environment: IS_VERCEL ? 'Vercel Serverless' : 'Local/VPS',
+        node_version: process.version,
+        env_status: {
+            TMDB_API_KEY: process.env.TMDB_API_KEY ? 'configured' : 'missing',
+            TMDB_PROXY_URL: process.env.TMDB_PROXY_URL ? 'configured' : 'not_set',
+            ACCESS_PASSWORD: ACCESS_PASSWORDS.length > 0 ? `${ACCESS_PASSWORDS.length} password(s)` : 'not_set',
+            REMOTE_DB_URL: REMOTE_DB_URL ? 'configured' : 'not_set',
+            CACHE_TYPE: process.env.CACHE_TYPE || 'json (default)'
+        },
+        cache_type: cacheManager.type,
+        timestamp: new Date().toISOString()
     });
 });
 
@@ -843,7 +871,15 @@ function getDB() {
     return JSON.parse(fs.readFileSync(DATA_FILE));
 }
 
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-    console.log(`Image Cache Directory: ${IMAGE_CACHE_DIR}`);
-});
+// Vercel Serverless 兼容：导出 app 模块
+// Vercel 环境下不需要调用 listen()，它会自动处理
+if (process.env.VERCEL) {
+    // Vercel 环境：导出 Express app
+    module.exports = app;
+} else {
+    // 本地环境：正常启动服务器
+    app.listen(PORT, () => {
+        console.log(`Server running on http://localhost:${PORT}`);
+        console.log(`Image Cache Directory: ${IMAGE_CACHE_DIR}`);
+    });
+}
