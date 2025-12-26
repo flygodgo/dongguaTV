@@ -7,17 +7,17 @@ on:
   workflow_dispatch:
     inputs:
       server_url:
-        description: 'Server URL (e.g. https://your-site.com)'
+        description: 'Server URL (e.g. https://dg.atcc.cc)'
         required: true
         default: 'https://ednovas.video'
       app_name:
         description: 'App Name'
         required: true
-        default: 'E视界'
+        default: '冬瓜TV'
       version_tag:
         description: 'Version Tag (e.g. v1.0.0)'
         required: true
-        default: 'v1.0.0'
+        default: 'v1.2.0'
 
 jobs:
   build:
@@ -52,7 +52,7 @@ jobs:
           if [ -d "public" ]; then
             cp -r public/* www/
           else
-            echo "<html><body>E视界</body></html>" > www/index.html
+            echo "<html><body>冬瓜TV</body></html>" > www/index.html
           fi
           echo "Created www directory manually as fallback"
 
@@ -122,7 +122,20 @@ jobs:
       - name: Build Release APK (Universal - All Architectures)
         working-directory: android
         run: ./gradlew assembleRelease
-
+      - name: Create tag 
+        run: | 
+          VERSION="v1.0.${{ github.run_number }}" 
+          echo "VERSION=$VERSION" >> $GITHUB_ENV 
+          git config user.name "github-actions" 
+          git config user.email "github-actions@github.com" 
+          git tag $VERSION git push origin $VERSION 
+      # ⬇⬇⬇ 在这里插入 Create Release 
+      - name: Create GitHub Release 
+        uses: softprops/action-gh-release@v1 
+        with: 
+          tag_name: ${{ env.VERSION }} 
+          files: app/build/outputs/**/*.apk
+      
       # 签名 APK
       # 优先使用 GitHub Secrets 配置的 Release 密钥
       # 如果未配置，自动生成并使用临时 Debug 密钥签名
@@ -212,16 +225,16 @@ jobs:
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: E视界-apk
+          name: 冬瓜TV-apk
           path: android/app/build/outputs/apk/release/*.apk
           retention-days: 30
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          name: "E视界 ${{ steps.version.outputs.VERSION }}"
+          name: "冬瓜TV ${{ steps.version.outputs.VERSION }}"
           body: |
-            ## 📦 E视界 ${{ steps.version.outputs.VERSION }}
+            ## 📦 冬瓜TV ${{ steps.version.outputs.VERSION }}
             
             ### 📱 Android APK 下载
             
